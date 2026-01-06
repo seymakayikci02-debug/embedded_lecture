@@ -1,0 +1,52 @@
+#ifDef proc::xPblze6 
+#set proc::xPblze6::scrpdSize, 64 ; [64, 128, 256] 
+#set proc::xPblze6::clkFreq, 100000000 ; in Hz 
+#set IOdev::BRAM2::en, TRUE 
+#set IOdev::BRAM2::type, mem 
+#set IOdev::BRAM2::size, 4096 
+#set instmem::pageSize, 4096 
+#set instmem::pageCount, 1 
+#set instmem::sharedMemLocation, loMem ; [ hiMem, loMem ] 
+#set IOdev::BRAM2::value, instMem 
+#set IOdev::BRAM2::vhdlEn, TRUE 
+#set IOdev::BRAM2::vhdlEntityName, "BRAM2" 
+#set IOdev::BRAM2::vhdlTmplFile, "ROM_form.vhd" 
+#set IOdev::BRAM2::vhdlTargetFile, "BRAM2.vhd" 
+#endIf 
+
+
+
+start2:
+    ; Mem2 address = 0
+    LOAD  s4, 00
+    WRPRT s4, 20          ; port 20 = MEM2_ADDR
+
+main_loop:
+wait_not_empty:
+    ; read comm status
+    RDPRT s3, 12          ; port 12 = COMM_STAT
+    AND   s3, 02          ; EMPTY mask = 02
+    JUMP  NZ, wait_not_empty
+
+    ; X = comm dout
+    RDPRT s0, 11          ; port 11 = COMM_DOUT
+
+    ; K = Mem2[0]
+    RDPRT s1, 21          ; port 21 = MEM2_DOUT
+
+    ; Y = X + K
+    LOAD  s2, s0
+    ADD   s2, s1
+
+    ; Mem3 address = 0
+    LOAD  s4, 00
+    WRPRT s4, 30          ; port 30 = MEM3_ADDR
+
+    ; write data
+    WRPRT s2, 31          ; port 31 = MEM3_DIN
+
+    ; pulse WE = 1
+    LOAD  s4, 01
+    WRPRT s4, 32          ; port 32 = MEM3_WE
+
+    JUMP  main_loop
