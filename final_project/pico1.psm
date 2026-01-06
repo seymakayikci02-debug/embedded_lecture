@@ -1,0 +1,36 @@
+#ifDef proc::xPblze6 
+#set proc::xPblze6::scrpdSize, 64 ; [64, 128, 256] 
+#set proc::xPblze6::clkFreq, 100000000 ; in Hz 
+#set IOdev::BRAM1::en, TRUE 
+#set IOdev::BRAM1::type, mem 
+#set IOdev::BRAM1::size, 4096 
+#set instmem::pageSize, 4096 
+#set instmem::pageCount, 1 
+#set instmem::sharedMemLocation, loMem ; [ hiMem, loMem ] 
+#set IOdev::BRAM1::value, instMem 
+#set IOdev::BRAM1::vhdlEn, TRUE 
+#set IOdev::BRAM1::vhdlEntityName, "BRAM1" 
+#set IOdev::BRAM1::vhdlTmplFile, "ROM_form.vhd" 
+#set IOdev::BRAM1::vhdlTargetFile, "BRAM1.vhd" 
+#endIf
+
+start:
+    LOAD s0, 00          ; i = 0
+
+loop:
+    WRPRT s0, 00         ; MEM1_ADDR = i
+    RDPRT s1, 01         ; s1 = MEM1_DOUT
+
+wait_not_full:
+    RDPRT s2, 12         ; COMM_STAT
+    AND  s2, 01          ; FULL?
+    JUMP NZ, wait_not_full
+
+    WRPRT s1, 10         ; COMM_DIN = byte
+
+    ADD s0, 01
+    COMP s0, 08
+    JUMP NZ, loop
+
+done:
+    JUMP done
