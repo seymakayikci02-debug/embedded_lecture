@@ -148,11 +148,25 @@ module top_two_picos_mem_comm(
     .ct(crypto_ct)
   );
 
+reg crypto_done_sticky;
+
+    always @(posedge clk) begin
+      if (reset) begin
+        crypto_done_sticky <= 1'b0;
+      end else begin
+        // yeni start gelince done flag temizle
+        if (crypto_start)
+          crypto_done_sticky <= 1'b0;
+        // done pulse gelince flag set et ve tut
+        else if (crypto_done)
+          crypto_done_sticky <= 1'b1;
+      end
+    end
   // crypto status read
-  wire [7:0] crypto_stat = {6'b0, crypto_done, crypto_busy};
+  wire [7:0] crypto_stat = {6'b0, crypto_done_sticky, crypto_busy};
   
-    reg mem3_we;
-    reg mem3_din_reg;
+    reg        mem3_we;
+    reg [7:0]  mem3_din_reg;
   // ---------------- Sequential decode ----------------
   always @(posedge clk) begin
     if (reset) begin
