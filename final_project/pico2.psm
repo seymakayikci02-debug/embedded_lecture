@@ -1,0 +1,76 @@
+#ifDef proc::xPblze6 
+#set proc::xPblze6::scrpdSize, 64 ; [64, 128, 256] 
+#set proc::xPblze6::clkFreq, 100000000 ; in Hz 
+#set IOdev::BRAM2::en, TRUE 
+#set IOdev::BRAM2::type, mem 
+#set IOdev::BRAM2::size, 4096 
+#set instmem::pageSize, 4096 
+#set instmem::pageCount, 1 
+#set instmem::sharedMemLocation, loMem ; [ hiMem, loMem ] 
+#set IOdev::BRAM2::value, instMem 
+#set IOdev::BRAM2::vhdlEn, TRUE 
+#set IOdev::BRAM2::vhdlEntityName, "BRAM2" 
+#set IOdev::BRAM2::vhdlTmplFile, "ROM_form.vhd" 
+#set IOdev::BRAM2::vhdlTargetFile, "BRAM2.vhd" 
+#endIf
+
+start2:
+    ; -------- KEY: Mem2[0..9] -> CRYPTO_KEY --------
+    LOAD s2, 00              ; i = 0
+
+key_loop:
+    WRPRT s2, 20              ; MEM2_ADDR = i
+    RDPRT s0, 21              ; s0 = MEM2_DOUT
+
+    WRPRT s2, 41              ; CRYPTO_IDX = i
+    WRPRT s0, 42              ; CRYPTO_KEY byte write
+
+    ADD s2, 01
+    COMP s2, 10
+    JUMP NZ, key_loop
+
+    ; -------- PT: Comm[0..7] -> CRYPTO_PT --------
+    LOAD s2, 00              ; i = 0
+
+pt_loop:
+wait_not_empty:
+    RDPRT s3, 12              ; COMM_STAT
+    AND  s3, 02               ; EMPTY mask
+    JUMP NZ, wait_not_empty
+
+    RDPRT s0, 11              ; s0 = COMM_DOUT (this read pops)
+
+    WRPRT s2, 41              ; CRYPTO_IDX = i
+    WRPRT s0, 43              ; CRYPTO_PT byte write
+
+    ADD s2, 01
+    COMP s2, 08
+    JUMP NZ, pt_loop
+
+    ; -------- START encryption --------
+    LOAD s0, 01
+    WRPRT s0, 40              ; CRYPTO_CTRL bit0=start
+
+wait_done:
+    RDPRT s3, 45              ; CRYPTO_STAT
+    AND  s3, 02               ; done bit1
+    JUMP Z, wait_done
+
+    ; -------- CT: CRYPTO_CT -> Mem3[0..7] --------
+    LOAD s2, 00
+
+ct_loop:
+    WRPRT s2, 41              ; CRYPTO_IDX = i
+    RDPRT s0, 44              ; s0 = CRYPTO_CT byte
+
+    WRPRT s2, 30              ; MEM3_ADDR = i
+    WRPRT s0, 31              ; MEM3_DIN = byte
+    LOAD s1, 01
+    WRPRT s1, 32              ; MEM3_WE pulse
+
+    ADD s2, 01
+    COMP s2, 08
+    JUMP NZ, ct_loop
+
+done2:
+    JUMP done2
