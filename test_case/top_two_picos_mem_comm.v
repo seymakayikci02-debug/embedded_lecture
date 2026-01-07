@@ -89,9 +89,9 @@ module top_two_picos_mem_comm(
   // ============================================================
   // Data memories (NO block ram primitives)
   // ============================================================
-  reg [7:0] mem1 [0:255];
-  reg [7:0] mem2 [0:255];
-  reg [7:0] mem3 [0:255];
+  reg [7:0] mem1 [0:7];
+  reg [7:0] mem2 [0:7];
+  reg [7:0] mem3 [0:7];
 
   reg [7:0] mem1_addr;
   reg [7:0] mem2_addr;
@@ -101,7 +101,7 @@ module top_two_picos_mem_comm(
 
 always @(posedge clk) begin
   if (reset) begin
-    for (i = 0; i < 256; i = i + 1) begin
+    for (i = 0; i < 8; i = i + 1) begin
       mem1[i] <= 8'h00;
       mem2[i] <= 8'h00;
       mem3[i] <= 8'h00;
